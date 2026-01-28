@@ -1,0 +1,7 @@
+*__pycache__/
+images/
+.idea/
+.venv/
+learning/data/images/train/
+learning/dataset/
+*.env

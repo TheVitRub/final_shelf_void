@@ -44,7 +44,7 @@
 from pathlib import Path
 
 def fix_train_val_files():
-    dataset_dir = Path("learning/dataset/2026-01-30_v1").absolute()
+    dataset_dir = Path("dataset/2026-01-30_v1").absolute()
     
     # Получаем все существующие изображения
     train_images_dir = dataset_dir / "images" / "train"

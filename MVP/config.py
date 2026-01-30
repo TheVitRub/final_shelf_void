@@ -32,7 +32,7 @@
 """
 
 YOLO_MODEL = 'my_best-shelf-void-model.pt'
-CONFIDENCE_THRESHOLD = 0.25
+CONFIDENCE_THRESHOLD = 0.1
 DETECTION_IMG_SIZE = 640
 SKIP_FRAMES = 7
 MAX_DISPLAY_WIDTH = 2000
@@ -41,3 +41,11 @@ MAX_DISPLAY_WIDTH = 2000
 # Разрешение камеры
 FRAME_WIDTH = 2000
 FRAME_HEIGHT = 2000
+
+# API настройки
+API_BASE_URL = 'http://localhost:8000' 
+
+
+ID_STORE = 42013
+
+

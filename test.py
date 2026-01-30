@@ -27,50 +27,29 @@ YOLO модели для детекции пустых мест. Поддерж�
 Дата: 2026-01-27
 """
 
-import threading
-import time
+import os
 from ultralytics.models import YOLO
 
+from MVP.area_calculation.calculations import load_shelf_coordinates_from_json
 from MVP.camera.camera import Camera
 from MVP.show_picture.show_picture import ShowPicture
+from MVP.config import ID_STORE
 
-model_path=r'C:\Users\ryabovva.VOLKOVKMR\PycharmProjects\final_void_shelf\MVP\my_best-shelf-void-model2026-01-27-16-53.pt'
+model_path=r'C:\Users\ryabovva.VOLKOVKMR\PycharmProjects\final_void_shelf\learning\my_best-shelf-void-model2026-01-29-10-38.pt'
 model = YOLO(model_path)
 json_path=r'C:\Users\ryabovva.VOLKOVKMR\PycharmProjects\learn_void_shelf\shot_20260123_193334_shelf_coordinates.json'
-camera1 = Camera(ip_camera='10.142.13.204')
-camera2 = Camera(ip_camera='10.142.13.201')
+shelf_coordinates = load_shelf_coordinates_from_json(json_path)
+camera1 = Camera(ip_camera=os.getenv('CAMERA_IP'))
 
-camera_config = [
-    '10.142.13.204',
-    '10.142.13.197',
-    '10.142.13.201',
-    '10.142.13.195'
-]
+
 
 threads = []
 test = ShowPicture(
     model=model)
+
+
 test.start(json_path=json_path,
     camera=camera1)
-quit()
-for camera_ip in camera_config:
-    camera = Camera(ip_camera=camera_ip)
-    t = threading.Thread(
-        target=test.run_periodic,
-        args=(camera,),  # интервал 5 минут
-        daemon=True  # чтобы потоки закрылись при нажатии Ctrl+C
-    )
-    threads.append(t)
-    t.start()
 
 
-try:
-        # Держим основной поток живым, пока работают дочерние
-        while True:
-            time.sleep(1)
-except KeyboardInterrupt:
-        print("\nОстановка всех процессов...")
 
-test.start()
-#test.run_periodic()
-#test.run_periodic(camera=camera2)

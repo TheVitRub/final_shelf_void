@@ -18,18 +18,27 @@
 
 Методы ShowPicture:
     - start(): Запускает непрерывную обработку видеопотока с отображением
-    - frame(): Обрабатывает один кадр и выводит результаты раз в 5 минут
+    - frame(): Обрабатывает один кадр и возвращает результаты анализа
     - run_periodic(): Запускает периодический мониторинг с заданным интервалом
+    - start_in_store(): Запускает периодический мониторинг с отправкой данных на API
 
 Использование:
     from MVP.show_picture.show_picture import ShowPicture
     from MVP.camera.camera import Camera
+    from MVP.area_calculation.calculations import load_shelf_coordinates_from_json
     from ultralytics import YOLO
     
     model = YOLO('path/to/model.pt')
     camera = Camera(ip_camera='192.168.1.100')
     show = ShowPicture(model=model)
+    
+    # Вариант 1: Отображение видеопотока
     show.start(camera=camera, json_path='shelf_coordinates.json')
+    
+    # Вариант 2: Отправка данных на API
+    shelf_coordinates = load_shelf_coordinates_from_json('shelf_coordinates.json')
+    show.start_in_store(camera=camera, shelf_coordinates=shelf_coordinates, 
+                       id_store=1, time_interval=60)
 
 Автор: [Ваше имя]
 Дата: 2026-01-27
@@ -37,12 +46,14 @@
 
 import cv2
 import time
+import io
+import requests
 from ultralytics import YOLO
 
 from MVP.area_calculation.area_calculation import AreaCalculator
 from MVP.area_calculation.calculations import load_shelf_coordinates_from_json
 from MVP.camera.camera import Camera
-from MVP.config import SKIP_FRAMES, MAX_DISPLAY_WIDTH
+from MVP.config import SKIP_FRAMES, MAX_DISPLAY_WIDTH, API_BASE_URL
 
 
 def resize_frame(frame, max_width=MAX_DISPLAY_WIDTH):
@@ -194,39 +205,12 @@ class ShowPicture:
             shelf_coordinates=shelf_coordinates,
             filter_objects_in_shelves=True
         )
-        
-        # Проверяем, прошло ли 5 минут с последнего вывода
-        current_time = time.time()
-        if current_time - self.last_output_time >= self.output_interval:
-            # Выводим результаты
-            print("\n" + "=" * 60)
-            print(f"РЕЗУЛЬТАТЫ АНАЛИЗА (время: {time.strftime('%Y-%m-%d %H:%M:%S')})")
-            print("=" * 60)
-            print(f"Размер изображения: {results['image_size'][0]}x{results['image_size'][1]}")
-            print(f"Обнаружено объектов: {results['num_objects']}")
-            print(f"Общая площадь объектов: {results['total_objects_area']:.2f} пикселей²")
-            print(f"Общая площадь полок: {results['shelf_total_area']:.2f} пикселей²")
-            print(f"Процент наполнения: {results['fill_percentage']:.2f}%")
-            print("\n" + "-" * 60)
-            print("Детали объектов:")
-            print("-" * 60)
-            
-            for obj in results['objects_info']:
-                print(f"Объект {obj['id']}:")
-                print(f"  Класс: {obj['class']} (ID: {obj['class_id']})")
-                print(f"  Уверенность: {obj['confidence']:.2%}")
-                print(f"  Координаты: ({obj['coordinates'][0]:.0f}, {obj['coordinates'][1]:.0f}) -> "
-                      f"({obj['coordinates'][2]:.0f}, {obj['coordinates'][3]:.0f})")
-                print(f"  Площадь: {obj['area']:.2f} пикселей²")
-                print()
-            
-            # Обновляем время последнего вывода
-            self.last_output_time = current_time
-            return frame, results
-        else:
-            return None
+
+
+        return frame, results
     
     def run_periodic(self, camera:Camera, shelf_coordinates):
+    
         """
         Запускает цикл, который получает данные с камеры и выводит их раз в 5 минут.
         Камера подключается один раз при инициализации класса.
@@ -252,6 +236,95 @@ class ShowPicture:
                 
         except KeyboardInterrupt:
             print("\nОстановка мониторинга...")
+        finally:
+            camera.release()
+            print("Камера отключена")
+    def start_in_store(self, camera:Camera, shelf_coordinates:list, id_store:int, 
+                       time_interval:int = 60, api_url:str = None):
+        """
+        Запускает периодический мониторинг полок с отправкой данных на API.
+        
+        Args:
+            camera: Экземпляр класса Camera для получения кадров
+            shelf_coordinates: Список координат полок [(x1, y1, x2, y2), ...]
+            id_store: ID магазина для отправки на API
+            time_interval: Интервал между отправками данных в секундах (по умолчанию 60)
+            api_url: URL API эндпоинта (по умолчанию используется API_BASE_URL из config)
+        
+        Отправляет на API:
+            - id_store: ID магазина
+            - void: Процент наполнения (int, округленный)
+            - ip_camera: IP адрес камеры
+            - file: Изображение кадра в формате JPEG
+        """
+        if api_url is None:
+            api_url = f"{API_BASE_URL}/entrance/photo"
+        
+        print(f"Запуск мониторинга для магазина ID: {id_store}")
+        print(f"Интервал отправки данных: {time_interval} секунд")
+        print(f"API URL: {api_url}")
+        print("Для остановки нажмите Ctrl+C\n")
+        
+        try:
+            while True:
+                try:
+                    # Получаем кадр и результаты анализа
+                    frame, results = self.frame(camera=camera, shelf_coordinates=shelf_coordinates)
+                    
+                    if frame is None or results is None:
+                        print("Не удалось получить кадр, пропускаем итерацию...")
+                        time.sleep(time_interval)
+                        continue
+                    
+                    ip_camera = camera.ip_camera
+                    fill_percentage = results['fill_percentage']
+                    void_percentage = int(round(fill_percentage))  # Округляем до целого числа
+                    
+                    # Конвертируем кадр в JPEG формат для отправки
+                    # Используем cv2.imencode для кодирования изображения в память
+                    success, buffer = cv2.imencode('.jpg', frame)
+                    
+                    if not success:
+                        print("Ошибка кодирования изображения, пропускаем отправку...")
+                        time.sleep(time_interval)
+                        continue
+                    
+                    # Создаем BytesIO объект из буфера
+                    image_bytes = io.BytesIO(buffer.tobytes())
+                    
+                    # Подготавливаем данные для отправки
+                    files = {
+                        'file': ('image.jpg', image_bytes, 'image/jpeg')
+                    }
+                    data = {
+                        'id_store': id_store,
+                        'void': void_percentage,
+                        'ip_camera': ip_camera
+                    }
+                    
+                    # Отправляем POST запрос на API
+                    try:
+                        response = requests.post(api_url, files=files, data=data, timeout=10)
+                        
+                        if response.status_code == 200:
+                            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Данные успешно отправлены: "
+                                  f"ID магазина={id_store}, Наполнение={void_percentage}%, IP={ip_camera}")
+                        else:
+                            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Ошибка отправки данных: "
+                                  f"HTTP {response.status_code} - {response.text}. response: {response}")
+                    
+                    except requests.exceptions.RequestException as e:
+                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Ошибка подключения к API: {e}")
+                    
+                    # Ждем перед следующей отправкой
+                    time.sleep(time_interval)
+                    
+                except KeyboardInterrupt:
+                    print("\nОстановка мониторинга...")
+                    break
+                except Exception as e:
+                    print(f"Ошибка в цикле мониторинга: {e}")
+                    time.sleep(time_interval)  # Ждем перед следующей попыткой
         finally:
             camera.release()
             print("Камера отключена")

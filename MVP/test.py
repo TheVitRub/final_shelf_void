@@ -20,7 +20,7 @@
 
 from show_picture.show_picture import ShowPicture
 
-model_path=r'C:\Users\ryabovva.VOLKOVKMR\PycharmProjects\final_void_shelf\MVP\my_best-shelf-void-model2026-01-27-16-53.pt'
+model_path= r'/my_best-shelf-void-model2026-01-27-16-53.pt'
 json_path=r'C:\Users\ryabovva.VOLKOVKMR\PycharmProjects\learn_void_shelf\shot_20260123_193334_shelf_coordinates.json'
 test = ShowPicture(model_path, json_path)
 test.run_periodic()

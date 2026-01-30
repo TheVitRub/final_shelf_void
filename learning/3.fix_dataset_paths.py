@@ -46,7 +46,7 @@ def fix_paths():
     """Исправляет пути в train.txt и val.txt на абсолютные"""
     base_dir = Path(__file__).parent.absolute()
     print(base_dir)
-    dataset_dir = base_dir / "dataset"
+    dataset_dir = base_dir / "dataset" / "2026-01-30_v1"
     
     # Читаем train.txt и исправляем пути
     train_txt_path = dataset_dir / "train.txt"

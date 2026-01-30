@@ -7,3 +7,4 @@ learning/dataset/
 *.env
 learn/learning/dataset
 *runs/*
+learning/runs/

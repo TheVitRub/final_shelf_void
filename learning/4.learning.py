@@ -7,7 +7,7 @@ def main():
     # Обучение
     results = model.train(
         data='dataset/2026-01-30_v1/data.yaml',
-        epochs=25,
+        epochs=100,
         imgsz=640,
         batch=8,
         device=0,      # Теперь точно указываем видеокарту!
@@ -31,7 +31,7 @@ def main():
         mixup=0.1,
     )
 
-    model.save("my_best-shelf-void-model2026-01-30-09-06.pt")
+    model.save("my_best-shelf-void-model2026-01-30-09-06_v1.pt")
 
 if __name__ == '__main__':
     main()

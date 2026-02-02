@@ -35,11 +35,11 @@ from MVP.camera.camera import Camera
 from MVP.show_picture.show_picture import ShowPicture
 from MVP.config import ID_STORE
 
-model_path=r'C:\Users\ryabovva.VOLKOVKMR\PycharmProjects\final_void_shelf\learning\my_best-shelf-void-model2026-01-29-10-38.pt'
+model_path=r'C:\Users\ryabovva.VOLKOVKMR\PycharmProjects\final_void_shelf\learning\my_best-shelf-void-model2026-01-30-09-06.pt'
 model = YOLO(model_path)
 json_path=r'C:\Users\ryabovva.VOLKOVKMR\PycharmProjects\learn_void_shelf\shot_20260123_193334_shelf_coordinates.json'
 shelf_coordinates = load_shelf_coordinates_from_json(json_path)
-camera1 = Camera(ip_camera=os.getenv('CAMERA_IP'))
+camera1 = Camera('10.142.13.207')
 
 
 

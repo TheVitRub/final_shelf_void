@@ -2,18 +2,19 @@ from ultralytics import YOLO
 
 def main():
     # Загрузка предобученной модели
-    model = YOLO('my_best-shelf-void-model2026-02-01-12-15_V2.pt')
+    model = YOLO('yolo26n.pt')
 
     # Обучение
     results = model.train(
-        data='dataset/2026-02-02/data.yaml',
+        data='dataset/final/data.yaml',
+
         epochs=100,
-        imgsz=640,
-        batch=30,
+        imgsz=1280,
+        batch=2,
         device=0,      # Теперь точно указываем видеокарту!
         workers=0,     # Количество потоков для загрузки данных
         name='yolo26_void_shelf',
-        patience=50,
+        patience=10,
         save=True,
         plots=True,
         cache=True,
@@ -31,7 +32,7 @@ def main():
         mixup=0.1,
     )
 
-    model.save("my_best-shelf-void-model2026-02-01-12-15_V3.pt")
+    model.save("my_best-shelf-void-model2026-02-01-12-15_V3_Обучение на боковом стеллаже.pt")
 
 if __name__ == '__main__':
     main()

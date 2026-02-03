@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 # Настройки путей
-LOCAL_DATASET_PATH = "learning/dataset/2026-02-02" # <--- МЕНЯТЬ ПАПКУ ТУТ
+LOCAL_DATASET_PATH = "learning/dataset/final" # <--- МЕНЯТЬ ПАПКУ ТУТ
 
 # Конфигурация сетевого диска
 NETWORK_BASE_PATH = Path(r"T:\Рябов\learning")
